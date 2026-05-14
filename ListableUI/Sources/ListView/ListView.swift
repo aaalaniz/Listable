@@ -467,12 +467,19 @@ public final class ListView : UIView
             }
         }()
 
+        let keyboardAdjustmentAdditionalInsets: UIEdgeInsets = keyboardBottomInset > 0.0
+            ? self.behavior.keyboardAdjustmentAdditionalInsets
+            : .zero
+
         let scrollInsets = modified(self.scrollIndicatorInsets) {
-            $0.bottom = max($0.bottom, keyboardBottomInset)
+            $0.bottom = max($0.bottom, keyboardBottomInset + keyboardAdjustmentAdditionalInsets.bottom)
         }
         
         let contentInsets = modified(self.collectionView.contentInset) {
-            $0.bottom = keyboardBottomInset
+            $0.top = keyboardAdjustmentAdditionalInsets.top
+            $0.left = keyboardAdjustmentAdditionalInsets.left
+            $0.bottom = keyboardBottomInset + keyboardAdjustmentAdditionalInsets.bottom
+            $0.right = keyboardAdjustmentAdditionalInsets.right
         }
         
         return .init(
