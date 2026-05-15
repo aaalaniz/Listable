@@ -2085,6 +2085,14 @@ final class CollectionView : ListView.IOS16_4_First_Responder_Bug_CollectionView
         }
     }
 
+    override func scrollRectToVisible(_ rect: CGRect, animated: Bool) {
+        // UIKit can ask for a non-animated focus scroll from inside the keyboard animation
+        // transaction. Promote that case to the scroll view's animated path so cells move
+        // through UICollectionView's normal scrolling lifecycle instead of jumping mid-transaction.
+        let shouldPromoteToScrollAnimation = !animated && UIView.inheritedAnimationDuration > 0
+        super.scrollRectToVisible(rect, animated: animated || shouldPromoteToScrollAnimation)
+    }
+
     /// Returns true when the content size is large enough that scrolling is possible
     /// without bouncing back to it's original position.
     var isContentScrollable: Bool {
