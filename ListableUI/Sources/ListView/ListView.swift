@@ -466,13 +466,14 @@ public final class ListView : UIView
 
         if didChangeInsets {
             self.collectionViewLayout.setNeedsRelayout()
+            self.collectionView.layoutIfNeeded()
         }
 
         if didChangeInsets ||
             previousContentOffset != self.collectionView.contentOffset
         {
             debugKeyboardAvoidance(
-                "updateScrollViewInsets mode=\(behavior.keyboardAdjustmentMode) didChangeInsets=\(didChangeInsets) invalidatedLayout=\(didChangeInsets) bounds=\(bounds) safeArea=\(safeAreaInsets) previousContentInset=\(previousContentInset) nextContentInset=\(collectionView.contentInset) previousAdjusted=\(previousAdjustedContentInset) nextAdjusted=\(nextAdjustedContentInset) previousOffset=\(previousContentOffset) nextOffset=\(collectionView.contentOffset) additional=\(behavior.keyboardAdjustmentAdditionalInsets)"
+                "updateScrollViewInsets mode=\(behavior.keyboardAdjustmentMode) didChangeInsets=\(didChangeInsets) forcedRelayout=\(didChangeInsets) bounds=\(bounds) safeArea=\(safeAreaInsets) previousContentInset=\(previousContentInset) nextContentInset=\(collectionView.contentInset) previousAdjusted=\(previousAdjustedContentInset) nextAdjusted=\(nextAdjustedContentInset) previousOffset=\(previousContentOffset) nextOffset=\(collectionView.contentOffset) additional=\(behavior.keyboardAdjustmentAdditionalInsets)"
             )
         }
     }
