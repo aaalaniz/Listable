@@ -127,11 +127,25 @@ public final class ListView : UIView
             name: UITextField.textDidBeginEditingNotification,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(textDidBeginEditingNotification(_:)),
+            name: UITextView.textDidBeginEditingNotification,
+            object: nil
+        )
         
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(textDidEndEditingNotification(_:)),
             name: UITextField.textDidEndEditingNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(textDidEndEditingNotification(_:)),
+            name: UITextView.textDidEndEditingNotification,
             object: nil
         )
     }
@@ -446,12 +460,20 @@ public final class ListView : UIView
         }
 
         let nextAdjustedContentInset = self.collectionView.adjustedContentInset
-        if previousContentInset != self.collectionView.contentInset ||
-            previousAdjustedContentInset != nextAdjustedContentInset ||
+        let didChangeInsets =
+            previousContentInset != self.collectionView.contentInset ||
+            previousAdjustedContentInset != nextAdjustedContentInset
+
+        if didChangeInsets {
+            self.collectionViewLayout.setNeedsRelayout()
+            self.collectionView.layoutIfNeeded()
+        }
+
+        if didChangeInsets ||
             previousContentOffset != self.collectionView.contentOffset
         {
             debugKeyboardAvoidance(
-                "updateScrollViewInsets mode=\(behavior.keyboardAdjustmentMode) bounds=\(bounds) safeArea=\(safeAreaInsets) previousContentInset=\(previousContentInset) nextContentInset=\(collectionView.contentInset) previousAdjusted=\(previousAdjustedContentInset) nextAdjusted=\(nextAdjustedContentInset) previousOffset=\(previousContentOffset) nextOffset=\(collectionView.contentOffset) additional=\(behavior.keyboardAdjustmentAdditionalInsets)"
+                "updateScrollViewInsets mode=\(behavior.keyboardAdjustmentMode) didChangeInsets=\(didChangeInsets) forcedRelayout=\(didChangeInsets) bounds=\(bounds) safeArea=\(safeAreaInsets) previousContentInset=\(previousContentInset) nextContentInset=\(collectionView.contentInset) previousAdjusted=\(previousAdjustedContentInset) nextAdjusted=\(nextAdjustedContentInset) previousOffset=\(previousContentOffset) nextOffset=\(collectionView.contentOffset) additional=\(behavior.keyboardAdjustmentAdditionalInsets)"
             )
         }
     }
