@@ -191,6 +191,10 @@ public final class ListView : UIView
     private let keyboardObserver : KeyboardObserver
 
     private var lastKeyboardFrame : KeyboardFrame? = nil
+
+    func debugKeyboardAvoidance(_ message: @autoclosure () -> String) {
+        print("[MRKT-86][Listable][\(debuggingIdentifier ?? "unnamed")] \(message())")
+    }
     
     //
     // MARK: Debugging
@@ -416,6 +420,10 @@ public final class ListView : UIView
     /// whenever insets require an update.
     public func updateScrollViewInsets()
     {
+        let previousContentInset = self.collectionView.contentInset
+        let previousAdjustedContentInset = self.collectionView.adjustedContentInset
+        let previousContentOffset = self.collectionView.contentOffset
+
         let insets: ScrollViewInsets
         if case .custom = self.behavior.keyboardAdjustmentMode {
             insets = self.customScrollViewInsets()
@@ -435,6 +443,16 @@ public final class ListView : UIView
 
         if self.collectionView.verticalScrollIndicatorInsets != insets.verticalScroll {
             self.collectionView.verticalScrollIndicatorInsets = insets.verticalScroll
+        }
+
+        let nextAdjustedContentInset = self.collectionView.adjustedContentInset
+        if previousContentInset != self.collectionView.contentInset ||
+            previousAdjustedContentInset != nextAdjustedContentInset ||
+            previousContentOffset != self.collectionView.contentOffset
+        {
+            debugKeyboardAvoidance(
+                "updateScrollViewInsets mode=\(behavior.keyboardAdjustmentMode) bounds=\(bounds) safeArea=\(safeAreaInsets) previousContentInset=\(previousContentInset) nextContentInset=\(collectionView.contentInset) previousAdjusted=\(previousAdjustedContentInset) nextAdjusted=\(nextAdjustedContentInset) previousOffset=\(previousContentOffset) nextOffset=\(collectionView.contentOffset) additional=\(behavior.keyboardAdjustmentAdditionalInsets)"
+            )
         }
     }
 
@@ -470,6 +488,10 @@ public final class ListView : UIView
         let keyboardAdjustmentAdditionalInsets: UIEdgeInsets = keyboardBottomInset > 0.0
             ? self.behavior.keyboardAdjustmentAdditionalInsets
             : .zero
+
+        debugKeyboardAvoidance(
+            "calculateScrollViewInsets keyboardFrame=\(String(describing: keyboardFrame)) keyboardBottomInset=\(keyboardBottomInset) appliedAdditional=\(keyboardAdjustmentAdditionalInsets) wantsKeyboardInsetAdjustment=\(layout.wantsKeyboardInsetAdjustment) bounds=\(bounds)"
+        )
 
         let scrollInsets = modified(self.scrollIndicatorInsets) {
             $0.bottom = max($0.bottom, keyboardBottomInset + keyboardAdjustmentAdditionalInsets.bottom)
@@ -565,9 +587,14 @@ public final class ListView : UIView
         completion: ScrollCompletion? = nil
     ) -> Bool
     {
+        debugKeyboardAvoidance(
+            "scrollTo item=\(item) position=\(position) animated=\(animated) contentOffset=\(collectionView.contentOffset) visibleFrame=\(collectionView.visibleContentFrame) adjustedInset=\(collectionView.adjustedContentInset)"
+        )
+
         // Make sure the item identifier is valid.
 
         guard let toIndexPath = self.storage.allContent.firstIndexPathForItem(with: item) else {
+            debugKeyboardAvoidance("scrollTo item=\(item) failed: missing item")
             handleScrollCompletion(reason: .cannotScroll, completion: completion)
             return false
         }
@@ -588,6 +615,10 @@ public final class ListView : UIView
             let itemFrame = self.collectionViewLayout.frameForItem(at: toIndexPath)
             let viewport = self.collectionView.visibleContentFrame
             let isAlreadyVisible = viewport.contains(itemFrame)
+
+            self.debugKeyboardAvoidance(
+                "scrollTo item=\(item) indexPath=\(toIndexPath) itemFrame=\(itemFrame) viewport=\(viewport) isAlreadyVisible=\(isAlreadyVisible) adjustedInset=\(self.collectionView.adjustedContentInset)"
+            )
 
             // If the item is already visible and that's good enough, return.
 
@@ -666,12 +697,16 @@ public final class ListView : UIView
         completion: ScrollCompletion? = nil
     ) -> Bool
     {
+        debugKeyboardAvoidance(
+            "scrollToSection id=\(identifier) sectionPosition=\(sectionPosition) scrollPosition=\(scrollPosition) animated=\(animated) contentOffset=\(collectionView.contentOffset) visibleFrame=\(collectionView.visibleContentFrame)"
+        )
 
         let storageContent = storage.allContent
 
         // Make sure the section identifier is valid.
 
         guard let sectionIndex = storageContent.firstIndexForSection(with: identifier) else {
+            debugKeyboardAvoidance("scrollToSection id=\(identifier) failed: missing section")
             self.handleScrollCompletion(reason: .cannotScroll, completion: completion)
             return false
         }
@@ -1136,9 +1171,16 @@ public final class ListView : UIView
     override public func layoutSubviews()
     {
         super.layoutSubviews()
-        
+
+        let previousFrame = self.collectionView.frame
         self.collectionView.frame = self.bounds
-        
+
+        if previousFrame != self.collectionView.frame {
+            debugKeyboardAvoidance(
+                "layoutSubviews collectionFrame \(previousFrame) -> \(collectionView.frame) bounds=\(bounds) contentOffset=\(collectionView.contentOffset) adjustedInset=\(collectionView.adjustedContentInset)"
+            )
+        }
+
         /// Our layout changed, update the keyboard inset in case the inset should now be different.
         self.updateScrollViewInsets()
     }
@@ -1152,6 +1194,10 @@ public final class ListView : UIView
         guard let field = notification.object as? UIView else {
             return
         }
+
+        debugKeyboardAvoidance(
+            "textDidBeginEditing field=\(type(of: field)) fieldFrameInList=\(field.convert(field.bounds, to: self)) contentOffset=\(collectionView.contentOffset) adjustedInset=\(collectionView.adjustedContentInset) visibleFrame=\(collectionView.visibleContentFrame)"
+        )
         
         if let containingSupplementaryView = field.firstSuperview(ofType: SupplementaryContainerView.self) {
             containingSupplementaryView.headerFooter?.containsFirstResponder = true
@@ -1527,6 +1573,10 @@ public final class ListView : UIView
         animated: Bool = false,
         completion: ScrollCompletion? = nil
     ) {
+        debugKeyboardAvoidance(
+            "performScroll targetFrame=\(targetFrame) scrollPosition=\(scrollPosition) animated=\(animated) currentOffset=\(collectionView.contentOffset) visibleFrame=\(collectionView.visibleContentFrame) adjustedInset=\(collectionView.adjustedContentInset)"
+        )
+
         // If the item is already visible and that's good enough, return.
 
         let isAlreadyVisible = collectionView.visibleContentFrame.contains(targetFrame)
@@ -1571,9 +1621,13 @@ public final class ListView : UIView
             y: round(collectionView.contentOffset.y)
         )
         if roundedCurrentOffset != roundedResultOffset {
+            debugKeyboardAvoidance(
+                "performScroll setContentOffset result=\(resultOffset) roundedResult=\(roundedResultOffset) maxOffsetHeight=\(maxOffsetHeight) contentSize=\(collectionViewLayout.collectionViewContentSize)"
+            )
             collectionView.setContentOffset(resultOffset, animated: shouldAnimate)
             handleScrollCompletion(reason: .scrolled(animated: shouldAnimate), completion: completion)
         } else {
+            debugKeyboardAvoidance("performScroll no-op roundedCurrent=\(roundedCurrentOffset) roundedResult=\(roundedResultOffset)")
             handleScrollCompletion(reason: .cannotScroll, completion: completion)
         }
     }
@@ -1756,12 +1810,18 @@ extension ListView : KeyboardObserverDelegate
     public func keyboardFrameWillChange(for observer: KeyboardObserver, animationDuration: Double, animationCurve: UIView.AnimationCurve) {
 
         guard let frame = self.keyboardObserver.currentFrame(in: self) else {
+            debugKeyboardAvoidance("keyboardFrameWillChange skipped: no current frame duration=\(animationDuration) curve=\(animationCurve)")
             return
         }
 
         guard self.lastKeyboardFrame != frame else {
+            debugKeyboardAvoidance("keyboardFrameWillChange skipped: unchanged frame=\(frame)")
             return
         }
+
+        debugKeyboardAvoidance(
+            "keyboardFrameWillChange frame=\(frame) previous=\(String(describing: lastKeyboardFrame)) duration=\(animationDuration) curve=\(animationCurve) mode=\(behavior.keyboardAdjustmentMode) contentOffset=\(collectionView.contentOffset) contentInset=\(collectionView.contentInset) adjustedInset=\(collectionView.adjustedContentInset)"
+        )
 
         self.lastKeyboardFrame = frame
 
