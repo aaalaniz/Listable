@@ -366,10 +366,6 @@ extension ListView
         func scrollViewDidScroll(_ scrollView: UIScrollView)
         {
             guard scrollView.bounds.size.height > 0 else { return }
-
-            self.view.debugKeyboardAvoidance(
-                "scrollViewDidScroll contentOffset=\(scrollView.contentOffset) contentInset=\(scrollView.contentInset) adjustedInset=\(scrollView.adjustedContentInset) visibleFrame=\(scrollView.visibleContentFrame) contentSize=\(scrollView.contentSize)"
-            )
                         
             SignpostLogger.log(.begin, log: .scrollView, name: "scrollViewDidScroll", for: self.view)
             
