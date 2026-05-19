@@ -196,6 +196,51 @@ class ListViewTests: XCTestCase
         }
     }
 
+    func test_textViewEditingNotificationsUpdateSupplementaryFirstResponderTracking()
+    {
+        let view = ListView()
+        view.frame.size = CGSize(width: 200, height: 400)
+
+        view.configure { list in
+            list("section") { section in
+                section.header = HeaderFooter(
+                    TextViewSupplementary(),
+                    sizing: .fixed(height: 100)
+                )
+
+                section += Item(
+                    TestContent(content: "row"),
+                    sizing: .fixed(height: 50)
+                )
+            }
+        }
+
+        view.collectionView.layoutIfNeeded()
+
+        guard
+            let state = view.storage.presentationState.sections.first?.header.state,
+            let container = view.storage.presentationState.sections.first?.header.visibleContainer,
+            let contentView = container.content as? HeaderFooterContentView<TextViewSupplementary>
+        else {
+            XCTFail("Expected a visible text view supplementary header.")
+            return
+        }
+
+        NotificationCenter.default.post(
+            name: UITextView.textDidBeginEditingNotification,
+            object: contentView.content.textView
+        )
+
+        XCTAssertEqual(state.containsFirstResponder, true)
+
+        NotificationCenter.default.post(
+            name: UITextView.textDidEndEditingNotification,
+            object: contentView.content.textView
+        )
+
+        XCTAssertEqual(state.containsFirstResponder, false)
+    }
+
     func test_change_size() {
 
         /// Ensure we respect the size of the view changing via both bounds and frame.
@@ -1516,6 +1561,47 @@ fileprivate struct TestSupplementary : HeaderFooterContent, Equatable
     static func createReusableContentView(frame: CGRect) -> UIView
     {
         return UIView(frame: frame)
+    }
+}
+
+
+fileprivate struct TextViewSupplementary : HeaderFooterContent, Equatable
+{
+    func apply(
+        to views: HeaderFooterContentViews<Self>,
+        for reason: ApplyReason,
+        with info: ApplyHeaderFooterContentInfo
+    ) {
+        // Nothing.
+    }
+
+    typealias ContentView = View
+
+    static func createReusableContentView(frame: CGRect) -> View
+    {
+        return View(frame: frame)
+    }
+
+    final class View : UIView
+    {
+        let textView = UITextView()
+
+        override init(frame: CGRect)
+        {
+            super.init(frame: frame)
+
+            self.addSubview(self.textView)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { fatalError() }
+
+        override func layoutSubviews()
+        {
+            super.layoutSubviews()
+
+            self.textView.frame = self.bounds
+        }
     }
 }
 
