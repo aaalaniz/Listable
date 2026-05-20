@@ -146,9 +146,18 @@ Finally, the `Behavior` and  `Behavior.Underflow` allows customizing what happen
 public struct Behavior : Equatable
 {
     public var keyboardDismissMode : UIScrollView.KeyboardDismissMode
+
+    public var keyboardAdjustmentMode : KeyboardAdjustmentMode
+
+    public var keyboardAdjustmentAdditionalInsets : UIEdgeInsets
     
     public var underflow : Underflow
 ```
+
+`keyboardAdjustmentAdditionalInsets` is applied only while the keyboard overlaps the list.
+It lets callers reserve extra keyboard-adjusted space for persistent overlays, such as a
+floating bottom bar, so UIKit's first-responder scrolling treats that overlay as unavailable
+space.
 
 ```swift
 

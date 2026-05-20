@@ -205,6 +205,8 @@ public final class ListView : UIView
     private let keyboardObserver : KeyboardObserver
 
     private var lastKeyboardFrame : KeyboardFrame? = nil
+
+    private var keyboardFrameChangeGeneration = 0
     
     //
     // MARK: Debugging
@@ -1799,6 +1801,7 @@ extension ListView : KeyboardObserverDelegate
         }
 
         self.lastKeyboardFrame = frame
+        self.trackKeyboardFrameChangeForScrollPromotion(duration: animationDuration)
 
         if .custom != behavior.keyboardAdjustmentMode {
             UIViewPropertyAnimator(duration: animationDuration, curve: animationCurve) {
@@ -1811,6 +1814,21 @@ extension ListView : KeyboardObserverDelegate
             self.keyboardObserver,
             (animationDuration: animationDuration, animationCurve: animationCurve)
         )
+    }
+
+    private func trackKeyboardFrameChangeForScrollPromotion(duration: Double) {
+        self.keyboardFrameChangeGeneration += 1
+        let generation = self.keyboardFrameChangeGeneration
+
+        self.collectionView.promotesScrollRectToVisibleDuringKeyboardAnimation = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.05) { [weak self] in
+            guard self?.keyboardFrameChangeGeneration == generation else {
+                return
+            }
+
+            self?.collectionView.promotesScrollRectToVisibleDuringKeyboardAnimation = false
+        }
     }
 }
 
@@ -1977,6 +1995,7 @@ final class CollectionView : ListView.IOS16_4_First_Responder_Bug_CollectionView
     
     var verticalLayoutGravity : Behavior.VerticalLayoutGravity = .top
     var layoutDirection: LayoutDirection = .vertical
+    var promotesScrollRectToVisibleDuringKeyboardAnimation = false
     
     /// Normally, using `VerticalLayoutGravity.bottom` will keep the viewport anchored at the bottom.
     /// This happens in overrides of `contentSize`, `contentInset`, and `frame`. When this variable is
@@ -2042,7 +2061,9 @@ final class CollectionView : ListView.IOS16_4_First_Responder_Bug_CollectionView
         // UIKit can ask for a non-animated focus scroll from inside the keyboard animation
         // transaction. Promote that case to the scroll view's animated path so cells move
         // through UICollectionView's normal scrolling lifecycle instead of jumping mid-transaction.
-        let shouldPromoteToScrollAnimation = !animated && UIView.inheritedAnimationDuration > 0
+        let shouldPromoteToScrollAnimation = !animated &&
+            self.promotesScrollRectToVisibleDuringKeyboardAnimation &&
+            UIView.inheritedAnimationDuration > 0
         super.scrollRectToVisible(rect, animated: animated || shouldPromoteToScrollAnimation)
     }
 

@@ -2,6 +2,9 @@
 
 ### Fixed
 
+- Synchronized non-animated first-responder focus scrolling with keyboard animations so text inputs do not jump when the keyboard appears.
+- Kept supplementary views with `UITextView` first responders alive during list relayouts, matching existing `UITextField` behavior.
+
 ### Added
 
 - Added `Behavior.keyboardAdjustmentAdditionalInsets` to account for persistent overlay UI while Listable adjusts for an overlapping keyboard.
